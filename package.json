@@ -1,0 +1,28 @@
+{
+  "name": "wowbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "dependencies": {
+    "discord.js": "^12.1.1",
+    "discord.js-commando": "github:discordjs/Commando",
+    "path": "^0.12.7",
+    "sequelize": "^5.21.5",
+    "sqlite": "^3.0.6",
+    "sqlite3": "^4.1.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Myliak/ArcadeBullsWowBot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Myliak/ArcadeBullsWowBot/issues"
+  },
+  "homepage": "https://github.com/Myliak/ArcadeBullsWowBot#readme",
+  "devDependencies": {}
+}
