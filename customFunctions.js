@@ -15,17 +15,19 @@ exports.createCollectors = async function(client){
         const roleConnections = client.provider.db.modelManager.models[0];
         const messageIdList = await roleConnections.aggregate("targetMessage", "DISTINCT", {plain: false});
 
-        for(let i = 0; i< messageIdList.length; i++){
+        for(let i = 0; i < messageIdList.length; i++){
             const messageID = messageIdList[i].DISTINCT;
             for(let element of client.channels.cache.values()){
                 if(element.type === "text") {
-                    element.messages.fetch(messageID.toString()).then(async targetMessage => {
+                    try{
+                        const targetMessage = await element.messages.fetch(messageID);
                         const emojiList = await roleConnections.findAll({where: {targetMessage: messageIdList[i].DISTINCT}});
                         let tempArray = [];
                         for (let i = 0; i < emojiList.length; i++) {
                             tempArray[i] = "reaction.emoji.id === '" + emojiList[i].targetEmoji + "'";
                         }
                         const filterString = "return (" + tempArray.join(' || ') + ") && user.id !== '685118157614088222'";
+                        console.log(filterString + "\n");
                         const filter = new Function("reaction, user", filterString);
                         collectors[i] = targetMessage.createReactionCollector(filter, {dispose: true});
                         collectors[i].on('collect', async (reaction, user) => {
@@ -36,7 +38,8 @@ exports.createCollectors = async function(client){
                             const dbEntity = await roleConnections.findOne({where: {targetEmoji: reaction._emoji.id}});
                             this.removeRole(client, user.id, dbEntity.dataValues.targetRole).then(() => console.log("Removed role " + reaction._emoji.name + " from " + user.username));
                         });
-                    }).catch(error => {});
+                    }
+                    catch(e){}
                 }
             }
         }
