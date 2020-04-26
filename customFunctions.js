@@ -1,4 +1,5 @@
 const config = require("./config.json");
+const { MessageEmbed } = require('discord.js');
 let collectors = [];
 
 exports.createCollectors = async function(client){
@@ -12,29 +13,32 @@ exports.createCollectors = async function(client){
 
     try{
         const roleConnections = client.provider.db.modelManager.models[0];
-        const textChannelObj = await client.channels.cache.get(config.staticReactTextChannelID);
+        const messageIdList = await roleConnections.aggregate("targetMessage", "DISTINCT", {plain: false});
 
-        const messageList = await roleConnections.aggregate("targetMessage", "DISTINCT", {plain: false});
-        for(let i = 0; i < messageList.length; i++){
-            const targetMessage = await textChannelObj.messages.fetch(messageList[i].DISTINCT);
-            const emojiList = await roleConnections.findAll({where: {targetMessage: messageList[i].DISTINCT}});
-            let tempArray = [];
-            for(let i = 0; i < emojiList.length; i++){
-                tempArray[i] = "reaction.emoji.id === '" + emojiList[i].targetEmoji + "'";
+        for(let i = 0; i< messageIdList.length; i++){
+            const messageID = messageIdList[i].DISTINCT;
+            for(let element of client.channels.cache.values()){
+                if(element.type === "text") {
+                    element.messages.fetch(messageID.toString()).then(async targetMessage => {
+                        const emojiList = await roleConnections.findAll({where: {targetMessage: messageIdList[i].DISTINCT}});
+                        let tempArray = [];
+                        for (let i = 0; i < emojiList.length; i++) {
+                            tempArray[i] = "reaction.emoji.id === '" + emojiList[i].targetEmoji + "'";
+                        }
+                        const filterString = "return (" + tempArray.join(' || ') + ") && user.id !== '685118157614088222'";
+                        const filter = new Function("reaction, user", filterString);
+                        collectors[i] = targetMessage.createReactionCollector(filter, {dispose: true});
+                        collectors[i].on('collect', async (reaction, user) => {
+                            const dbEntity = await roleConnections.findOne({where: {targetEmoji: reaction._emoji.id}});
+                            this.addRole(client, user.id, dbEntity.dataValues.targetRole).then(() => console.log("Added role " + reaction._emoji.name + " to " + user.username));
+                        });
+                        collectors[i].on('remove', async (reaction, user) => {
+                            const dbEntity = await roleConnections.findOne({where: {targetEmoji: reaction._emoji.id}});
+                            this.removeRole(client, user.id, dbEntity.dataValues.targetRole).then(() => console.log("Removed role " + reaction._emoji.name + " from " + user.username));
+                        });
+                    }).catch(error => {});
+                }
             }
-            const filterString = "return (" + tempArray.join(' || ') + ") && user.id !== '685118157614088222'";
-            const filter = new Function("reaction, user", filterString);
-            collectors[i] = targetMessage.createReactionCollector(filter, {dispose: true});
-            collectors[i].on('collect', async (reaction, user) => {
-                const dbEntity = await roleConnections.findOne({where: {targetEmoji: reaction._emoji.id}});
-                this.addRole(client, user.id, dbEntity.dataValues.targetRole);
-                console.log("Added role " + reaction._emoji.name + " to " + user.username);
-            });
-            collectors[i].on('remove', async (reaction, user) => {
-                const dbEntity = await roleConnections.findOne({where: {targetEmoji: reaction._emoji.id}});
-                this.removeRole(client, user.id, dbEntity.dataValues.targetRole);
-                console.log("Removed role " + reaction._emoji.name + " from " + user.username);
-            });
         }
     }
     catch(e){
@@ -57,6 +61,18 @@ exports.removeRole = async function(client, userID, roleID){
     }
 };
 
-
-exports.adminOnly = function(userObj){
+exports.createEventEmbed = function(client){
+    const userList = client.provider.db.modelManager.models[1];
+    console.log(userList);
+    const embed = new MessageEmbed()
+        .setTitle("Test")
+        .setDescription("Test")
+        .addField("Čas ukončení:", "Test")
+        .addField("Zaregistrovaný", "-", true)
+        .addField("Role", "-", true)
+        .addField("Classa", "-", true)
+        .addField("Ve frontě", "-", true)
+        .addField("Role", "-", true)
+        .addField("Classa", "-", true)
+        .setFooter("Událost vytvořena uživatelem: " + message.author.username);
 };

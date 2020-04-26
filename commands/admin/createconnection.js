@@ -2,7 +2,7 @@ const lib = require("../../customFunctions.js");
 const { Command } = require('discord.js-commando');
 const config = require("../../config.json");
 
-module.exports = class CreateConnectionCommand extends Command {
+module.exports = class createconnectionCommand extends Command {
     constructor(client) {
         super(client, {
             name: "createconnection",
@@ -10,7 +10,6 @@ module.exports = class CreateConnectionCommand extends Command {
             group: "admin",
             memberName: "createconnection",
             description: "Vytvoří nové spojení na zprávě mezi rolí a reakcí",
-            usage: "!createconnection [název role] [název emoji] [id zprávy]",
             guildOnly: "true",
             args:[
                 {
@@ -20,7 +19,7 @@ module.exports = class CreateConnectionCommand extends Command {
                 },
                 {
                     key: "targetEmoji",
-                    prompt: "Zadejte název emoji pro spojení",
+                    prompt: "Zadejte emoji pro spojení",
                     type: "string"
                 },
                 {
@@ -37,45 +36,41 @@ module.exports = class CreateConnectionCommand extends Command {
         if(!message.member.roles.cache.has(config.adminRoleID) && message.author.id !== "279616229793071105") return console.log("Uživatel " + message.author.username + " se pokusil spustit příkaz createconnection");
 
         const role = message.guild.roles.cache.get(targetRole.slice(3, -1));
-        const emoji = message.guild.emojis.cache.find(emoji => emoji.name.toLowerCase() === targetEmoji.toLowerCase());
-        const textChannelObj = await this.client.channels.cache.get(config.staticReactTextChannelID);
-        let targetMessage = undefined;
-        try{
-            targetMessage = await textChannelObj.messages.fetch(targetMessageId.toString());
-        }
-        catch(e){
-            console.log(e);
-            return message.channel.send("Zpráva s ID " + targetMessageId + " nebyla nalezena");
-        }
+        const emoji = message.guild.emojis.cache.get(targetEmoji.toString().split("\:")[2].slice(0,-1));
+        let notFound = true;
 
-        //Error handler
-        if(role === undefined || emoji === undefined){
-            let errorMessage = "Nepodařilo se nalézt:";
-            if(role === undefined) errorMessage += " role";
-            if(emoji === undefined) errorMessage += " emoji";
-            return message.channel.send(errorMessage);
-        }
+        for(let element of this.client.channels.cache.values()){
+            if(element.type === "text") {
+                try {
+                    const targetMessage = await element.messages.fetch(targetMessageId.toString());
+                    await this.client.provider.db.modelManager.models[0].create({
+                        targetEmoji: emoji.id,
+                        targetRole: role.id,
+                        targetMessage: targetMessage.id
+                    });
 
-        try {
-            await this.client.provider.db.modelManager.models[0].create({
-                targetEmoji: emoji.id,
-                targetRole: role.id,
-                targetMessage: targetMessage.id
-            });
-            lib.createCollectors(this.client);
-
-            await targetMessage.react(emoji);
-
-            return message.channel.send("Nové spojení na zprávě " + targetMessage.id + " mezi " + role.name + " a " + emoji.name + " vytvořeno");
-        }
-        catch (e) {
-            console.log(e);
-            if (e.name === "SequelizeUniqueConstraintError") {
-                return message.channel.send("Používáte roli nebo emoji, které už má spojení");
+                    notFound = false;
+                    lib.createCollectors(this.client);
+                    await targetMessage.react(emoji);
+                    return message.channel.send("Nové spojení mezi " + role.name + " a " + emoji.name + " vytvořeno");
+                }
+                catch (e) {
+                    if (e.name === "SequelizeUniqueConstraintError") {
+                        console.log(e);
+                        return message.channel.send("Používáte roli nebo emoji, které už má spojení");
+                    }
+                    else if(e.message === "Unknown Message"){
+                        notFound = true;
+                    }
+                    else {
+                        console.log(e);
+                        return message.channel.send("Neznámá chyba při vytváření spojení");
+                    }
+                }
             }
-            else {
-                return message.channel.send("Neznámá chyba při vytváření spojení");
-            }
+        }
+        if(notFound){
+            message.channel.send("Zpráva nebyla nalezena");
         }
     }
 };

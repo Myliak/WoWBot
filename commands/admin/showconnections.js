@@ -2,7 +2,7 @@ const { Command } = require('discord.js-commando');
 const { MessageEmbed } = require('discord.js');
 const config = require("../../config.json");
 
-module.exports = class ShowConnectionsCommand extends Command {
+module.exports = class showconnectionsCommand extends Command {
     constructor(client) {
         super(client, {
             name: "showconnections",
@@ -10,7 +10,6 @@ module.exports = class ShowConnectionsCommand extends Command {
             group: "admin",
             memberName: "showconnections",
             description: "Vypíše všechny aktivní spojení",
-            usage: "!showconnections",
             guildOnly: "true",
         });
     }

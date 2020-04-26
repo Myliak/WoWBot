@@ -2,7 +2,7 @@ const config = require("../../config.json");
 const { Command } = require('discord.js-commando');
 const { MessageEmbed } = require('discord.js');
 
-module.exports = class HelpCommand extends Command {
+module.exports = class helpCommand extends Command {
     constructor(client) {
         super(client, {
             name: 'help',
@@ -10,7 +10,6 @@ module.exports = class HelpCommand extends Command {
             memberName: "help",
             description: "Vypisuje informace o jednotlivých příkazech \n",
             aliases: ["h"],
-            usage: "!help [název příkazu]",
             guildOnly: true,
             args: [
                 {
