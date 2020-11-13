@@ -27,7 +27,6 @@ exports.createCollectors = async function(client){
                             tempArray[i] = "reaction.emoji.id === '" + emojiList[i].targetEmoji + "'";
                         }
                         const filterString = "return (" + tempArray.join(' || ') + ") && user.id !== '685118157614088222'";
-                        console.log(filterString + "\n");
                         const filter = new Function("reaction, user", filterString);
                         collectors[i] = targetMessage.createReactionCollector(filter, {dispose: true});
                         collectors[i].on('collect', async (reaction, user) => {
@@ -52,13 +51,14 @@ exports.createCollectors = async function(client){
 exports.addRole = async function(client, userID, roleID){
     const targetGuild = await client.guilds.cache.get(config.staticGuildID);
     let targetRole = await targetGuild.roles.cache.get(roleID);
-    targetGuild.member(userID).roles.add(targetRole).catch(console.error);
+    const targetMember = await targetGuild.members.fetch(userID);
+    targetMember.roles.add(targetRole).catch(console.error);
 };
 
 exports.removeRole = async function(client, userID, roleID){
     const targetGuild = await client.guilds.cache.get(config.staticGuildID);
     let targetRole = await targetGuild.roles.cache.get(roleID);
-    const targetMember = targetGuild.member(userID);
+    const targetMember = await targetGuild.members.fetch(userID);
     if(targetMember.roles.cache.find(function (element) {return element === targetRole;}) !== null){
         targetMember.roles.remove(targetRole).catch(console.error);
     }
@@ -66,7 +66,6 @@ exports.removeRole = async function(client, userID, roleID){
 
 exports.createEventEmbed = function(client){
     const userList = client.provider.db.modelManager.models[1];
-    console.log(userList);
     const embed = new MessageEmbed()
         .setTitle("Test")
         .setDescription("Test")
